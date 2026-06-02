@@ -1,0 +1,5 @@
+/easter_worker
+/bin/
+.haybarn-cache/
+vgi_v/c/libvgi_ipc.dylib
+c/libvgi_ipc.dylib
