@@ -3,7 +3,11 @@ module vgi_v
 $if !test {
 #flag -I@VMODROOT/c
 #flag -L@VMODROOT/c
-#flag -l:libvgi_ipc.dylib
+$if linux {
+	#flag -l:libvgi_ipc.so
+} $else {
+	#flag -l:libvgi_ipc.dylib
+}
 #flag -Wl,-rpath,@VMODROOT/c
 
 #include "vgi_ipc.h"

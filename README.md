@@ -18,9 +18,24 @@ SELECT easter.main.easter_date(2025);  -- 2025-04-20
 | Tool | Notes |
 |------|--------|
 | [V](https://vlang.io/) | 0.5.x |
-| Apache Arrow | `brew install apache-arrow` (IPC shim + smoke clients) |
-| C++20 compiler | Builds `libvgi_ipc` and smoke clients |
+| Apache Arrow C++ | IPC shim + smoke clients; needs `pkg-config --libs arrow` |
+| C++20 compiler | Builds `libvgi_ipc` (`.so` on Linux, `.dylib` on macOS) and smoke clients |
 | [Haybarn](https://github.com/Query-farm-haybarn/install) | For full SQL e2e (`make test-haybarn`) |
+
+**Apache Arrow** (examples):
+
+```bash
+# macOS
+brew install apache-arrow pkg-config
+
+# Debian/Ubuntu
+sudo apt install -y g++ pkg-config libarrow-dev
+
+# Fedora
+sudo dnf install -y gcc-c++ pkg-config arrow-devel
+```
+
+If `pkg-config` cannot find Arrow, set `PKG_CONFIG_PATH` to the directory containing `arrow.pc`.
 
 ### Install Haybarn
 
@@ -100,9 +115,11 @@ If Haybarn is missing, install via [the installer](https://github.com/Query-farm
 
 ### Manual Haybarn session
 
+Run `make test-haybarn` once to populate `.haybarn-cache/vgi-<engine>-<platform>.duckdb_extension`, or set `HAYBARN_VGI_EXTENSION` explicitly.
+
 ```bash
 HAYBARN="$HOME/.haybarn/cli/latest/haybarn"
-EXT="${HAYBARN_VGI_EXTENSION:-$PWD/.haybarn-cache/vgi-1.5.3-osx_arm64.duckdb_extension}"
+EXT="${HAYBARN_VGI_EXTENSION:-$(ls .haybarn-cache/vgi-*.duckdb_extension 2>/dev/null | head -1)}"
 WORKER="$(pwd)/easter_worker"
 
 "$HAYBARN" -unsigned -c "
