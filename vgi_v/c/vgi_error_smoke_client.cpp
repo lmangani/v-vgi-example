@@ -28,6 +28,33 @@ std::vector<uint8_t> read_file(const std::string &path) {
 	return std::vector<uint8_t>((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 }
 
+std::vector<uint8_t> read_fd_all(int fd) {
+	std::vector<uint8_t> buf;
+	uint8_t chunk[8192];
+	while (true) {
+		const ssize_t n = read(fd, chunk, sizeof(chunk));
+		if (n == 0) {
+			break;
+		}
+		if (n < 0) {
+			throw std::runtime_error("read_fd_all failed");
+		}
+		buf.insert(buf.end(), chunk, chunk + n);
+	}
+	return buf;
+}
+
+std::shared_ptr<arrow::ipc::RecordBatchStreamReader> open_ipc_stream(const std::vector<uint8_t> &bytes) {
+	auto buffer = std::make_shared<arrow::Buffer>(reinterpret_cast<const uint8_t *>(bytes.data()),
+	                                              static_cast<int64_t>(bytes.size()));
+	auto reader_res =
+	    arrow::ipc::RecordBatchStreamReader::Open(std::make_shared<arrow::io::BufferReader>(buffer));
+	if (!reader_res.ok()) {
+		throw std::runtime_error(reader_res.status().ToString());
+	}
+	return *reader_res;
+}
+
 bool md_value(const std::shared_ptr<const arrow::KeyValueMetadata> &md, const char *key, std::string *out) {
 	if (md == nullptr) {
 		return false;
@@ -79,25 +106,12 @@ int main(int argc, char **argv) {
 		}
 		close(pipefd[1]);
 
-		auto buffer = std::make_shared<arrow::Buffer>(reinterpret_cast<const uint8_t *>(schema_wire.data()),
-		                                              static_cast<int64_t>(schema_wire.size()));
-		auto schema_reader = arrow::ipc::RecordBatchStreamReader::Open(
-		    std::make_shared<arrow::io::BufferReader>(buffer));
-		if (!schema_reader.ok()) {
-			throw std::runtime_error(schema_reader.status().ToString());
-		}
-		const auto expected_schema = (*schema_reader)->schema();
+		const auto expected_schema = open_ipc_stream(schema_wire)->schema();
 
-		auto input_res = arrow::io::ReadableFile::Open(pipefd[0]);
-		if (!input_res.ok()) {
-			throw std::runtime_error(input_res.status().ToString());
-		}
-		auto input = *input_res;
-		auto reader_res = arrow::ipc::RecordBatchStreamReader::Open(input.get());
-		if (!reader_res.ok()) {
-			throw std::runtime_error(reader_res.status().ToString());
-		}
-		auto reader = *reader_res;
+		// Pipes are not seekable; do not use ReadableFile::Open (lseek fails on Linux).
+		const auto pipe_bytes = read_fd_all(pipefd[0]);
+		close(pipefd[0]);
+		auto reader = open_ipc_stream(pipe_bytes);
 		if (!reader->schema()->Equals(*expected_schema)) {
 			std::cerr << "error stream schema mismatch\n";
 			return 1;
@@ -117,8 +131,6 @@ int main(int argc, char **argv) {
 				saw_exception = true;
 			}
 		}
-		close(pipefd[0]);
-
 		if (!saw_exception) {
 			std::cerr << "no EXCEPTION batch in error stream\n";
 			return 1;
@@ -192,13 +204,7 @@ int main(int argc, char **argv) {
 		int status = 0;
 		waitpid(pid, &status, 0);
 
-		auto out_buf = std::make_shared<arrow::Buffer>(out.data(), static_cast<int64_t>(out.size()));
-		auto out_reader_res =
-		    arrow::ipc::RecordBatchStreamReader::Open(std::make_shared<arrow::io::BufferReader>(out_buf));
-		if (!out_reader_res.ok()) {
-			throw std::runtime_error(out_reader_res.status().ToString());
-		}
-		auto out_reader = *out_reader_res;
+		auto out_reader = open_ipc_stream(out);
 		bool worker_exception = false;
 		while (true) {
 			auto rbm_res = out_reader->ReadNext();
