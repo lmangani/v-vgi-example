@@ -72,6 +72,10 @@ make worker
 # → ./easter_worker
 ```
 
+## CI
+
+GitHub Actions on `ubuntu-latest`: install Arrow (apt), V ([setup-v](https://github.com/vlang/setup-v)), Haybarn, then `make worker` and `make test-all`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
 ## Test
 
 ### Fast (no Haybarn)
