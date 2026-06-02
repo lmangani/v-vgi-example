@@ -153,6 +153,15 @@ Dispatch failures (unknown method, bad attach, etc.) return a **vgi-rpc EXCEPTIO
 
 Add or replace `.bin` files under `vgi_v/testdata/`, then run `gen_wire.sh` again.
 
+Haybarn 1.5.3 expects `late_materialization` on `catalog_schema_contents_functions` (31 catalog fields). If you recapture an older 30-field wire, run:
+
+```bash
+python3 scripts/patch_functions_wire_late_materialization.py
+./scripts/gen_wire.sh
+```
+
+`make test-haybarn` prefers builtin VGI or `INSTALL vgi FROM community`; stale npm extension caches can mismatch the catalog schema.
+
 ## Status
 
 Feature-complete for the Haybarn `easter` demo:

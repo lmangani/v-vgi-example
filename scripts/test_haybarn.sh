@@ -80,7 +80,7 @@ resolve_vgi_extension() {
 		fi
 	fi
 
-	echo "Searching local Haybarn / npm extension caches ..." >&2
+	echo "Searching DuckDB / Haybarn extension caches ..." >&2
 	local candidate
 	while IFS= read -r candidate; do
 		if try_load_extension "$candidate"; then
@@ -88,8 +88,20 @@ resolve_vgi_extension() {
 			return 0
 		fi
 	done < <(
-		find "${HOME}/.duckdb/extensions" "${HOME}/.npm" "${ROOT}/.haybarn-cache" -name 'vgi.duckdb_extension' 2>/dev/null \
+		find "${HOME}/.duckdb/extensions" "${ROOT}/.haybarn-cache" -name 'vgi.duckdb_extension' 2>/dev/null \
 			| sort -u
+	)
+
+	# Stale npm npx caches often ship an older VGI catalog schema (30 vs 31 fields).
+	echo "Searching npm extension caches (last resort) ..." >&2
+	while IFS= read -r candidate; do
+		if try_load_extension "$candidate"; then
+			echo "warning: using npm VGI extension; prefer builtin VGI or INSTALL vgi FROM community for Haybarn ${engine_ver}" >&2
+			echo "$candidate"
+			return 0
+		fi
+	done < <(
+		find "${HOME}/.npm" -name 'vgi.duckdb_extension' 2>/dev/null | sort -u
 	)
 
 	return 1
