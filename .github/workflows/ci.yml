@@ -14,15 +14,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system dependencies
+      - name: Install build tools
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential \
             pkg-config \
-            libarrow-dev \
             curl \
-            ca-certificates
+            ca-certificates \
+            lsb-release \
+            wget
+
+      - name: Install Apache Arrow
+        run: |
+          # libarrow-dev is not in default Ubuntu repos; use Apache's apt source.
+          # https://arrow.apache.org/install/
+          arch="$(lsb_release --id --short | tr 'A-Z' 'a-z')"
+          codename="$(lsb_release --codename --short)"
+          deb="apache-arrow-apt-source-latest-${codename}.deb"
+          wget -q "https://packages.apache.org/artifactory/arrow/${arch}/${deb}" -O "/tmp/${deb}"
+          sudo apt-get install -y -V "/tmp/${deb}"
+          sudo apt-get update
+          sudo apt-get install -y -V libarrow-dev
 
       - name: Install V
         uses: vlang/setup-v@v1.4

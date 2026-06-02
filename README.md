@@ -28,8 +28,14 @@ SELECT easter.main.easter_date(2025);  -- 2025-04-20
 # macOS
 brew install apache-arrow pkg-config
 
-# Debian/Ubuntu
-sudo apt install -y g++ pkg-config libarrow-dev
+# Debian/Ubuntu (Apache Arrow apt repo — needed on stock Ubuntu / GitHub runners)
+sudo apt install -y ca-certificates lsb-release wget pkg-config g++
+arch="$(lsb_release --id --short | tr 'A-Z' 'a-z')"
+codename="$(lsb_release --codename --short)"
+wget "https://packages.apache.org/artifactory/arrow/${arch}/apache-arrow-apt-source-latest-${codename}.deb"
+sudo apt install -y ./apache-arrow-apt-source-latest-*.deb
+sudo apt update
+sudo apt install -y libarrow-dev
 
 # Fedora
 sudo dnf install -y gcc-c++ pkg-config arrow-devel
@@ -74,7 +80,7 @@ make worker
 
 ## CI
 
-GitHub Actions on `ubuntu-latest`: install Arrow (apt), V ([setup-v](https://github.com/vlang/setup-v)), Haybarn, then `make worker` and `make test-all`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+GitHub Actions on `ubuntu-latest`: Apache [Arrow apt repo](https://arrow.apache.org/install/), V ([setup-v](https://github.com/vlang/setup-v)), Haybarn, then `make worker` and `make test-all`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Test
 
