@@ -7,13 +7,16 @@ SMOKE_CLIENT := $(ROOT)/bin/vgi_smoke_client
 ERROR_SMOKE_CLIENT := $(ROOT)/bin/vgi_error_smoke_client
 TESTDATA := $(ROOT)/vgi_v/testdata
 HAYBARN ?= $(HOME)/.haybarn/cli/latest/haybarn
+LIB_DIR := $(ROOT)/vgi_v/c
 
 ifeq ($(UNAME_S),Darwin)
-  SHLIB := vgi_v/c/libvgi_ipc.dylib
+  SHLIB := $(LIB_DIR)/libvgi_ipc.dylib
   CLIENT_RPATH := -Wl,-rpath,@loader_path/../vgi_v/c
 else
-  SHLIB := vgi_v/c/libvgi_ipc.so
-  CLIENT_RPATH := -Wl,-rpath,$$ORIGIN/../vgi_v/c
+  SHLIB := $(LIB_DIR)/libvgi_ipc.so
+  # $ORIGIN in Make recipes is brittle; use absolute rpath + LD_LIBRARY_PATH below.
+  CLIENT_RPATH := -Wl,-rpath,$(LIB_DIR)
+  export LD_LIBRARY_PATH := $(LIB_DIR)
 endif
 
 .PHONY: all shim smoke_client error_smoke_client worker test test-all test-computus test-ipc test-haybarn test-v-worker clean gen-wire ensure-haybarn
@@ -25,7 +28,8 @@ test-all: test test-haybarn
 shim: $(SHLIB)
 
 $(SHLIB): vgi_v/c/vgi_ipc.cpp vgi_v/c/vgi_ipc.h
-	c++ -std=c++20 -O2 -fPIC -shared vgi_v/c/vgi_ipc.cpp -o $@ $(ARROW_PKG)
+	c++ -std=c++20 -O2 -fPIC -shared vgi_v/c/vgi_ipc.cpp -o $@ $(ARROW_PKG) \
+	  -Wl,-soname,libvgi_ipc.so
 ifeq ($(UNAME_S),Darwin)
 	install_name_tool -id @rpath/libvgi_ipc.dylib $@ 2>/dev/null || true
 endif
@@ -34,12 +38,12 @@ smoke_client: bin/vgi_smoke_client
 
 bin/vgi_smoke_client: vgi_v/c/vgi_smoke_client.cpp $(SHLIB)
 	@mkdir -p bin
-	c++ -std=c++20 -O2 vgi_v/c/vgi_smoke_client.cpp -o $@ -Ivgi_v/c -Lvgi_v/c -lvgi_ipc $(ARROW_PKG) \
+	c++ -std=c++20 -O2 vgi_v/c/vgi_smoke_client.cpp -o $@ -I$(LIB_DIR) -L$(LIB_DIR) -lvgi_ipc $(ARROW_PKG) \
 	  $(CLIENT_RPATH)
 
 bin/vgi_error_smoke_client: vgi_v/c/vgi_error_smoke_client.cpp $(SHLIB)
 	@mkdir -p bin
-	c++ -std=c++20 -O2 vgi_v/c/vgi_error_smoke_client.cpp -o $@ -Ivgi_v/c -Lvgi_v/c -lvgi_ipc $(ARROW_PKG) \
+	c++ -std=c++20 -O2 vgi_v/c/vgi_error_smoke_client.cpp -o $@ -I$(LIB_DIR) -L$(LIB_DIR) -lvgi_ipc $(ARROW_PKG) \
 	  $(CLIENT_RPATH)
 
 error_smoke_client: bin/vgi_error_smoke_client
