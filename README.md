@@ -2,7 +2,7 @@
 
 Query.Farm **VGI worker** example in [V](https://vlang.io/) — a drop-in subprocess worker for the `easter` catalog (scalar `easter_date`). The database host is **[Haybarn](https://github.com/Query-farm-haybarn/install)** (Query.Farm’s DuckDB distribution); the worker is V.
 
-**No Python in this repo.** Golden IPC wire bytes are vendored under `vgi_v/testdata/`; tests use V, C++ smoke clients, and optional Haybarn SQL.
+Golden IPC wire bytes are vendored under `vgi_v/testdata/`. Tests use V, C++ smoke clients, and optional Haybarn SQL.
 
 ## Goal
 
@@ -124,7 +124,7 @@ Dispatch failures (unknown method, bad attach, etc.) return a **vgi-rpc EXCEPTIO
 ./scripts/gen_wire.sh   # reads vgi_v/testdata/*.bin → vgi_v/*.v
 ```
 
-To refresh golden bytes from Python workers (outside this repo), see `scripts/capture_wire_outside_repo.sh`.
+Add or replace `.bin` files under `vgi_v/testdata/`, then run `gen_wire.sh` again.
 
 ## Status
 

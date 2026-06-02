@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Capture golden IPC wire into vgi_v/testdata/*.bin (run outside this repo with vgi-python + vgi-easter).
+# Optional maintainer helper: capture golden IPC wire into vgi_v/testdata/*.bin using external Query.Farm worker checkouts (not used by make test).
 # Not invoked by make test. Example:
 #
 #   export VGI_PYTHON=/path/to/vgi-python
